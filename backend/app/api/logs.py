@@ -3,8 +3,11 @@ from sqlalchemy.orm import Session
 from app.schemas.log_schema import TelemetryLog
 from app.db.session import SessionLocal
 from app.models.log_models import RequestLog
-
+from app.db.session import SessionLocal
+from app.metrices.engine import MetricsEngine
 router = APIRouter(prefix="/log", tags=["telemetry"])
+
+router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
 def get_db():
@@ -25,3 +28,14 @@ def ingest_log(log: TelemetryLog, db: Session = Depends(get_db)):
     db.refresh(new_log)
 
     return {"message": "log stored"}
+
+@router.get("/overview")
+def overview(db: Session = Depends(get_db)):
+    engine = MetricsEngine(db)
+    return engine.get_overview()
+
+
+@router.get("/reliability")
+def reliability(db: Session = Depends(get_db)):
+    engine = MetricsEngine(db)
+    return engine.get_reliability_score()
