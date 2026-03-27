@@ -65,8 +65,9 @@ export default function Dashboard() {
   const reliabilityData = reliability ?? fallbackReliability;
 
   return (
-    <div className="min-h-screen bg-black p-6 text-white">
-      <h1 className="text-2xl font-bold mb-6">NeuralWatch Dashboard</h1>
+    <div className="min-h-screen bg-[#0B0F19] text-white p-8">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8">NeuralWatch</h1>
 
       {loading && <p className="text-gray-400 mb-4">Loading dashboard...</p>}
 
@@ -93,6 +94,7 @@ export default function Dashboard() {
         <p className="text-3xl font-bold text-green-400">
           {reliabilityData.reliability_score}
         </p>
+      </div>
       </div>
     </div>
   );
