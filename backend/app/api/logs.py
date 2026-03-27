@@ -39,3 +39,14 @@ def overview(db: Session = Depends(get_db)):
 def reliability(db: Session = Depends(get_db)):
     engine = MetricsEngine(db)
     return engine.get_reliability_score()
+
+@router.get("/latency-trend")
+def latency_trend(db: Session = Depends(get_db)):
+    engine = MetricsEngine(db)
+    return engine.get_latency_trend()
+
+
+@router.get("/cost-trend")
+def cost_trend(db: Session = Depends(get_db)):
+    engine = MetricsEngine(db)
+    return engine.get_cost_trend()
