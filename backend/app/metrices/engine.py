@@ -26,12 +26,40 @@ class MetricsEngine:
             "total_cost": total_cost
         }
 
-    def get_latency_metrics(self):
-        pass
+    def get_latency_trend(self):
 
-    def get_cost_metrics(self):
-        pass
+        results = (
+            self.db.query(
+                func.date(RequestLog.created_at).label("date"),
+                func.avg(RequestLog.latency_ms).label("avg_latency")
+            )
+            .group_by(func.date(RequestLog.created_at))
+            .order_by(func.date(RequestLog.created_at))
+            .all()
+        )
 
+        return [
+            {"date": str(r.date), "value": float(r.avg_latency)}
+            for r in results
+        ]
+    
+    def get_cost_trend(self):
+
+        results = (
+            self.db.query(
+                func.date(RequestLog.created_at).label("date"),
+                func.sum(RequestLog.cost_usd).label("total_cost")
+            )
+            .group_by(func.date(RequestLog.created_at))
+            .order_by(func.date(RequestLog.created_at))
+            .all()
+        )
+
+        return [
+            {"date": str(r.date), "value": float(r.total_cost)}
+            for r in results
+        ]
+    
     def get_reliability_score(self):
 
         total = self.db.query(func.count(RequestLog.id)).scalar()
