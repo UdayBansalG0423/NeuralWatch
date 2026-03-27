@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { getOverview, getReliability } from "../services/api";
+import {
+  getCostTrend,
+  getLatencyTrend,
+  getOverview,
+  getReliability,
+} from "../services/api";
 import Card from "../components/Card";
 import Chart from "../components/Chart";
 import { Activity, Server, Zap, DollarSign, ShieldCheck } from "lucide-react";
@@ -15,60 +20,49 @@ type Reliability = {
   reliability_score: string | number;
 };
 
-const fallbackOverview: Overview = {
-  total_requests: 1280,
-  success_rate: "97.8%",
-  avg_latency: "312ms",
-  total_cost: "$18.42",
+type TrendPoint = {
+  date: string;
+  value: number;
 };
 
-const fallbackReliability: Reliability = {
-  reliability_score: "0.92",
+const emptyOverview: Overview = {
+  total_requests: 0,
+  success_rate: 0,
+  avg_latency: 0,
+  total_cost: 0,
 };
 
-const latencyData = [
-  { name: "1", value: 200 },
-  { name: "2", value: 300 },
-  { name: "3", value: 250 },
-  { name: "4", value: 400 },
-];
-
-const costData = [
-  { name: "1", value: 0.01 },
-  { name: "2", value: 0.02 },
-  { name: "3", value: 0.015 },
-  { name: "4", value: 0.03 },
-];
+const emptyReliability: Reliability = {
+  reliability_score: 0,
+};
 
 export default function Dashboard() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [reliability, setReliability] = useState<Reliability | null>(null);
+  const [latencyData, setLatencyData] = useState<TrendPoint[]>([]);
+  const [costData, setCostData] = useState<TrendPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [overviewRes, reliabilityRes] = await Promise.all([
-          getOverview(),
-          getReliability(),
-        ]);
+    setApiError(null);
 
-        setOverview(overviewRes.data);
-        setReliability(reliabilityRes.data);
-      } catch {
-        // Only show error visually in UI header later, not blocking UI
-        setApiError("Disconnected from Live Backend. Showing Demo Data.");
-      } finally {
+    Promise.all([
+      getOverview().then((res) => setOverview(res.data)),
+      getReliability().then((res) => setReliability(res.data)),
+      getLatencyTrend().then((res) => setLatencyData(res.data)),
+      getCostTrend().then((res) => setCostData(res.data)),
+    ])
+      .catch(() => {
+        setApiError("Disconnected from Live Backend.");
+      })
+      .finally(() => {
         setLoading(false);
-      }
-    };
-
-    load();
+      });
   }, []);
 
-  const overviewData = overview ?? fallbackOverview;
-  const reliabilityData = reliability ?? fallbackReliability;
+  const overviewData = overview ?? emptyOverview;
+  const reliabilityData = reliability ?? emptyReliability;
 
   return (
     <div className="p-8 pb-20 w-full max-w-7xl mx-auto">
@@ -85,7 +79,7 @@ export default function Dashboard() {
           {apiError ? (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-sm font-medium">
               <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-              Demo Mode Active
+              API Disconnected
             </div>
           ) : (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium">
@@ -134,8 +128,8 @@ export default function Dashboard() {
         {/* Charts Section */}
         <div className="col-span-1 lg:col-span-2 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Chart data={latencyData} title="Latency Trend (ms)" />
-            <Chart data={costData} title="Cost Trend ($)" />
+            <Chart data={latencyData} title="Latency Trend" />
+            <Chart data={costData} title="Cost Trend" />
           </div>
         </div>
 

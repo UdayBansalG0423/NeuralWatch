@@ -10,3 +10,4 @@ frontend/vite-project/node_modules/
 frontend/vite-project/dist/
 frontend/.env
 frontend/.env.*
+docs/
