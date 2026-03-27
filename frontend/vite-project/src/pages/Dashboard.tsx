@@ -25,14 +25,18 @@ const fallbackReliability: Reliability = {
   reliability_score: "0.92",
 };
 
-const fallbackChartData = [
-  { name: "Mon", value: 280 },
-  { name: "Tue", value: 310 },
-  { name: "Wed", value: 295 },
-  { name: "Thu", value: 330 },
-  { name: "Fri", value: 300 },
-  { name: "Sat", value: 285 },
-  { name: "Sun", value: 320 },
+const latencyData = [
+  { name: "1", value: 200 },
+  { name: "2", value: 300 },
+  { name: "3", value: 250 },
+  { name: "4", value: 400 },
+];
+
+const costData = [
+  { name: "1", value: 0.01 },
+  { name: "2", value: 0.02 },
+  { name: "3", value: 0.015 },
+  { name: "4", value: 0.03 },
 ];
 
 export default function Dashboard() {
@@ -84,9 +88,9 @@ export default function Dashboard() {
         <Card title="Total Cost" value={overviewData.total_cost} />
       </div>
 
-      <div className="mt-6 rounded-2xl bg-gray-900 p-4 shadow-md">
-        <h2 className="mb-3 text-lg font-semibold">Latency Trend</h2>
-        <Chart data={fallbackChartData} />
+      <div className="grid md:grid-cols-2 gap-6 mt-8">
+        <Chart data={latencyData} title="Latency Trend" />
+        <Chart data={costData} title="Cost Trend" />
       </div>
 
       <div className="mt-6">
