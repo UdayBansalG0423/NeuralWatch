@@ -1,6 +1,11 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-export default function Chart({ data, title }: any) {
+type ChartProps = {
+  data: Array<{ name: string; value: number }>;
+  title?: string;
+};
+
+export default function Chart({ data, title }: ChartProps) {
   return (
     <div className="bg-[#111827] p-4 rounded-2xl border border-gray-800">
       <h3 className="mb-4 text-gray-400">{title}</h3>
