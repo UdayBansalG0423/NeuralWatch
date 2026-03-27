@@ -1,13 +1,21 @@
+# Environment files
 /.env
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+
+# Python
 backend/venv/
 __pycache__/
 *.pyc
 *.pyo
-*.pyd   
+*.pyd
 
+# Frontend
 frontend/node_modules/
 frontend/vite-project/node_modules/
 frontend/vite-project/dist/
-frontend/.env
-frontend/.env.*
+
+# Documentation
 docs/
