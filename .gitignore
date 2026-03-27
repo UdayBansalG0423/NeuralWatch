@@ -3,4 +3,10 @@ backend/venv/
 __pycache__/
 *.pyc
 *.pyo
-*.pyd    
+*.pyd   
+
+frontend/node_modules/
+frontend/vite-project/node_modules/
+frontend/vite-project/dist/
+frontend/.env
+frontend/.env.*
