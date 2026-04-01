@@ -5,6 +5,8 @@ from app.db.session import SessionLocal
 from app.models.log_models import RequestLog
 from app.db.session import SessionLocal
 from app.metrices.engine import MetricsEngine
+from app.core.auth import get_tenant_from_api_key
+
 router = APIRouter(prefix="/log", tags=["telemetry"])
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -50,3 +52,17 @@ def latency_trend(db: Session = Depends(get_db)):
 def cost_trend(db: Session = Depends(get_db)):
     engine = MetricsEngine(db)
     return engine.get_cost_trend()
+
+@router.post("/")
+def ingest_log(
+    log: TelemetryLog,
+    tenant_id: str = Depends(get_tenant_from_api_key),
+    db: Session = Depends(get_db)
+):
+
+    new_log = RequestLog(**log.dict(), tenant_id=tenant_id)
+
+    db.add(new_log)
+    db.commit()
+
+    return {"message": "log stored"}
