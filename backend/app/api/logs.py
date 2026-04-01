@@ -3,13 +3,10 @@ from sqlalchemy.orm import Session
 from app.schemas.log_schema import TelemetryLog
 from app.db.session import SessionLocal
 from app.models.log_models import RequestLog
-from app.db.session import SessionLocal
 from app.metrices.engine import MetricsEngine
 from app.core.auth import get_tenant_from_api_key
 
 router = APIRouter(prefix="/log", tags=["telemetry"])
-
-router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
 def get_db():
@@ -21,15 +18,19 @@ def get_db():
 
 
 @router.post("/")
-def ingest_log(log: TelemetryLog, db: Session = Depends(get_db)):
+def ingest_log(
+    log: TelemetryLog,
+    tenant_id: str = Depends(get_tenant_from_api_key),
+    db: Session = Depends(get_db)
+):
 
-    new_log = RequestLog(**log.dict())
+    new_log = RequestLog(**log.dict(), tenant_id=tenant_id)
 
     db.add(new_log)
     db.commit()
-    db.refresh(new_log)
 
     return {"message": "log stored"}
+
 
 @router.get("/overview")
 def overview(
@@ -64,17 +65,3 @@ def cost_trend(
 ):
     engine = MetricsEngine(db)
     return engine.get_cost_trend(tenant_id)
-
-@router.post("/")
-def ingest_log(
-    log: TelemetryLog,
-    tenant_id: str = Depends(get_tenant_from_api_key),
-    db: Session = Depends(get_db)
-):
-
-    new_log = RequestLog(**log.dict(), tenant_id=tenant_id)
-
-    db.add(new_log)
-    db.commit()
-
-    return {"message": "log stored"}
