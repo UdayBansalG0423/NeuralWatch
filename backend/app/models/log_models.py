@@ -8,6 +8,7 @@ class RequestLog(Base):
     __tablename__ = "request_logs"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, nullable=False)
     model_name = Column(String)
     provider = Column(String)
     prompt_tokens = Column(Integer)
