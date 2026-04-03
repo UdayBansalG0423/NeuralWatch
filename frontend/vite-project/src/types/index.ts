@@ -14,6 +14,29 @@ export interface TrendPoint {
   value: number;
 }
 
+export interface QuickStatsData {
+  active_models: number;
+  avg_response_time: number;
+  tokens_per_min: number;
+  uptime: number;
+}
+
+export interface TopModel {
+  name: string;
+  provider: string;
+  requests: number;
+  avg_latency: number;
+  success_rate: number;
+}
+
+export interface ActivityItem {
+  type: "success" | "warning" | "error";
+  message: string;
+  time: string | null;
+  provider: string;
+  cost_usd: number;
+}
+
 export interface MetricData {
   value: number;
   name?: string;
