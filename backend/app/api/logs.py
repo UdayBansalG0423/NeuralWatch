@@ -65,3 +65,30 @@ def cost_trend(
 ):
     engine = MetricsEngine(db)
     return engine.get_cost_trend(tenant_id)
+
+
+@router.get("/quick-stats")
+def quick_stats(
+    tenant_id: str = Depends(get_tenant_from_api_key),
+    db: Session = Depends(get_db)
+):
+    engine = MetricsEngine(db)
+    return engine.get_quick_stats(tenant_id)
+
+
+@router.get("/top-models")
+def top_models(
+    tenant_id: str = Depends(get_tenant_from_api_key),
+    db: Session = Depends(get_db)
+):
+    engine = MetricsEngine(db)
+    return engine.get_top_models(tenant_id)
+
+
+@router.get("/recent-activity")
+def recent_activity(
+    tenant_id: str = Depends(get_tenant_from_api_key),
+    db: Session = Depends(get_db)
+):
+    engine = MetricsEngine(db)
+    return engine.get_recent_activity(tenant_id)
