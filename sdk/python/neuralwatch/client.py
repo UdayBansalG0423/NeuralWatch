@@ -1,18 +1,18 @@
 import requests
-from .config import API_URL, API_KEY
+from . import config
 
 
 def send_log(payload: dict):
-    if not API_KEY:
+    if not config.API_KEY:
         raise Exception("API key not configured")
 
     headers = {
-        "X-API-KEY": API_KEY,
+        "X-API-KEY": config.API_KEY,
         "Content-Type": "application/json"
     }
 
     response = requests.post(
-        f"{API_URL}/log",
+        f"{config.API_URL}/log/",
         json=payload,
         headers=headers
     )
