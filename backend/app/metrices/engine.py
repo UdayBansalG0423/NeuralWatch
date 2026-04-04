@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+import calendar
+from math import floor
 from sqlalchemy import case, func
 from app.models.log_models import RequestLog
 
@@ -196,3 +198,109 @@ class MetricsEngine:
             )
 
         return activities
+
+    def _percentile(self, values, percentile: float):
+        if not values:
+            return 0.0
+
+        ordered = sorted(values)
+        index = (len(ordered) - 1) * percentile
+        lower = floor(index)
+        upper = min(lower + 1, len(ordered) - 1)
+        weight = index - lower
+        return ordered[lower] * (1 - weight) + ordered[upper] * weight
+
+    def get_analytics(self, tenant_id: str, days: int = 7):
+        start_date = datetime.utcnow().date() - timedelta(days=days - 1)
+
+        request_rows = (
+            self.db.query(
+                func.date(RequestLog.created_at).label("date"),
+                func.count(RequestLog.id).label("requests"),
+            )
+            .filter(RequestLog.tenant_id == tenant_id)
+            .filter(func.date(RequestLog.created_at) >= start_date)
+            .group_by(func.date(RequestLog.created_at))
+            .order_by(func.date(RequestLog.created_at))
+            .all()
+        )
+
+        request_map = {str(row.date): int(row.requests or 0) for row in request_rows}
+        request_trend = []
+        for offset in range(days):
+            current_date = start_date + timedelta(days=offset)
+            request_trend.append({
+                "date": calendar.day_abbr[current_date.weekday()],
+                "value": request_map.get(str(current_date), 0),
+            })
+
+        model_rows = (
+            self.db.query(
+                RequestLog.model_name.label("name"),
+                func.count(RequestLog.id).label("value"),
+            )
+            .filter(RequestLog.tenant_id == tenant_id)
+            .group_by(RequestLog.model_name)
+            .order_by(func.count(RequestLog.id).desc())
+            .all()
+        )
+
+        model_distribution = [
+            {"name": row.name or "Unknown", "value": int(row.value or 0)}
+            for row in model_rows[:4]
+        ]
+
+        if len(model_rows) > 4:
+            other_value = sum(int(row.value or 0) for row in model_rows[4:])
+            if other_value:
+                model_distribution.append({"name": "Other", "value": other_value})
+
+        token_totals = self.db.query(
+            func.sum(RequestLog.prompt_tokens).label("prompt_tokens"),
+            func.sum(RequestLog.completion_tokens).label("completion_tokens"),
+            func.sum(RequestLog.total_tokens).label("total_tokens"),
+        ).filter(RequestLog.tenant_id == tenant_id).first()
+
+        prompt_tokens = int(token_totals.prompt_tokens or 0)
+        completion_tokens = int(token_totals.completion_tokens or 0)
+        total_tokens = int(token_totals.total_tokens or 0)
+
+        if total_tokens <= 0:
+            total_tokens = prompt_tokens + completion_tokens
+
+        if total_tokens <= 0:
+            token_usage = [
+                {"name": "Input", "value": 0},
+                {"name": "Output", "value": 0},
+            ]
+        else:
+            token_usage = [
+                {"name": "Input", "value": prompt_tokens or int(total_tokens * 0.65)},
+                {"name": "Output", "value": completion_tokens or int(total_tokens * 0.35)},
+            ]
+
+        latency_rows = (
+            self.db.query(RequestLog.latency_ms)
+            .filter(RequestLog.tenant_id == tenant_id)
+            .filter(RequestLog.latency_ms.isnot(None))
+            .all()
+        )
+        latencies = [float(row[0]) for row in latency_rows if row[0] is not None]
+
+        total_requests = len(latencies)
+        avg_latency = sum(latencies) / total_requests if total_requests else 0
+
+        performance_summary = {
+            "p50_latency": round(self._percentile(latencies, 0.50), 2),
+            "p95_latency": round(self._percentile(latencies, 0.95), 2),
+            "p99_latency": round(self._percentile(latencies, 0.99), 2),
+            "total_tokens": total_tokens,
+            "avg_latency": round(avg_latency, 2),
+        }
+
+        return {
+            "request_trend": request_trend,
+            "model_distribution": model_distribution,
+            "token_usage": token_usage,
+            "performance_summary": performance_summary,
+        }
