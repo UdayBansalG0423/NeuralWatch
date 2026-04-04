@@ -226,21 +226,93 @@ export default function Dashboard() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("Unable to connect to backend API");
+  const [apiKey, setApiKey] = useState(() => 
+    localStorage.getItem("nw_api_key") || import.meta.env.VITE_API_KEY || ""
+  );
+  const [showApiKeyInput, setShowApiKeyInput] = useState(!apiKey);
 
-  useEffect(() => {
-    Promise.all([
-      getOverview().then((res) => setOverview(res.data)).catch(() => setError(true)),
-      getReliability().then((res) => setReliability(res.data)).catch(() => setError(true)),
+  const loadDashboardData = () => {
+    setLoading(true);
+    setError(false);
+    setErrorMessage("Unable to connect to backend API");
+
+    return Promise.all([
+      getOverview().then((res) => setOverview(res.data)).catch((error) => {
+        setError(true);
+        setErrorMessage(error?.response?.status === 401 || error?.response?.status === 422
+          ? "Invalid or missing API key"
+          : "Unable to connect to backend API");
+      }),
+      getReliability().then((res) => setReliability(res.data)).catch((error) => {
+        setError(true);
+        setErrorMessage(error?.response?.status === 401 || error?.response?.status === 422
+          ? "Invalid or missing API key"
+          : "Unable to connect to backend API");
+      }),
       getLatencyTrend().then((res) => setLatencyData(res.data)).catch(() => {}),
       getCostTrend().then((res) => setCostData(res.data)).catch(() => {}),
       getQuickStats().then((res) => setQuickStats(res.data)).catch(() => {}),
       getTopModels().then((res) => setTopModels(res.data)).catch(() => {}),
       getRecentActivity().then((res) => setActivities(res.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
-  }, []);
+  };
+
+  const handleSetApiKey = () => {
+    if (!apiKey.trim()) {
+      return;
+    }
+
+    localStorage.setItem("nw_api_key", apiKey.trim());
+    setShowApiKeyInput(false);
+  };
+
+  const handleResetKey = () => {
+    localStorage.removeItem("nw_api_key");
+    setApiKey("");
+    setShowApiKeyInput(true);
+    setError(false);
+    setErrorMessage("Unable to connect to backend API");
+  };
+
+  useEffect(() => {
+    if (!showApiKeyInput) {
+      void loadDashboardData();
+    }
+  }, [showApiKeyInput]);
 
   const overviewData = overview ?? defaultOverview;
   const reliabilityData = reliability ?? defaultReliability;
+
+  if (showApiKeyInput) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="w-full max-w-md p-6 bg-surface-700 rounded-lg border border-surface-600">
+          <h2 className="text-xl font-bold text-white mb-4">Setup API Key</h2>
+          <p className="text-sm text-surface-300 mb-4">
+            Enter your NeuralWatch API key to start monitoring your AI observability metrics.
+          </p>
+          <input
+            type="password"
+            placeholder="sk_test_123"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleSetApiKey()}
+            className="w-full px-4 py-2 bg-surface-800 border border-surface-600 rounded-lg text-white placeholder-surface-500 focus:outline-none focus:border-primary-500 mb-4"
+          />
+          <button
+            onClick={handleSetApiKey}
+            className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+          >
+            Connect Dashboard
+          </button>
+          <p className="text-xs text-surface-400 mt-4 text-center">
+            Don't have an API key? Create one in the API Keys section.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -256,9 +328,24 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-danger-500/10 border border-danger-500/20 rounded-lg">
-          <AlertTriangle className="w-5 h-5 text-danger-500" />
-          <span className="text-sm text-danger-500">Unable to connect to backend API.</span>
+        <div className="flex items-center justify-between gap-3 p-4 bg-danger-500/10 border border-danger-500/20 rounded-lg">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-danger-500" />
+            <div>
+              <span className="text-sm text-danger-500 font-medium">{errorMessage}</span>
+              <p className="text-xs text-danger-400 mt-1">
+                {errorMessage === "Invalid or missing API key"
+                  ? "Set the same key in the browser and in the SDK, then refresh."
+                  : "Make sure the backend is running on port 8000 and the API URL is correct."}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleResetKey}
+            className="text-xs px-3 py-1 bg-danger-500/20 hover:bg-danger-500/30 text-danger-400 rounded transition-colors"
+          >
+            Reset Key
+          </button>
         </div>
       )}
 

@@ -1,9 +1,67 @@
-import { useState } from "react";
-import { Settings, User, Bell, Shield, Palette, Database, Save, Check } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Settings, User, Bell, Shield, Palette, Database, Save, Check, LoaderCircle, AlertTriangle } from "lucide-react";
+import { getSettings } from "../../services/api";
+
+interface UserSettings {
+  tenant_id: string;
+  profile: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    company: string;
+  };
+  preferences: {
+    email_digest: boolean;
+    weekly_reports: boolean;
+    timezone: string;
+    currency: string;
+  };
+}
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
   const [saved, setSaved] = useState(false);
+  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [formData, setFormData] = useState<UserSettings | null>(null);
+
+  useEffect(() => {
+    getSettings()
+      .then((res) => {
+        setSettings(res.data);
+        setFormData(res.data);
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="flex items-center gap-3 text-surface-400">
+          <LoaderCircle className="w-5 h-5 animate-spin" />
+          <span>Loading settings...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !settings || !formData) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="flex flex-col items-center gap-2">
+          <AlertTriangle className="w-8 h-8 text-danger-500" />
+          <span className="text-danger-500">Failed to load settings. Make sure backend is running.</span>
+        </div>
+      </div>
+    );
+  }
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
@@ -12,11 +70,6 @@ export default function SettingsPage() {
     { id: "appearance", label: "Appearance", icon: Palette },
     { id: "billing", label: "Billing", icon: Database },
   ];
-
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
 
   return (
     <div className="space-y-6">
@@ -61,19 +114,60 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-surface-500 mb-1.5">First Name</label>
-                    <input type="text" defaultValue="Admin" className="input w-full" />
+                    <input 
+                      type="text" 
+                      value={formData.profile.first_name} 
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        profile: { ...formData.profile, first_name: e.target.value }
+                      })}
+                      className="input w-full" 
+                    />
                   </div>
                   <div>
                     <label className="block text-xs text-surface-500 mb-1.5">Last Name</label>
-                    <input type="text" defaultValue="User" className="input w-full" />
+                    <input 
+                      type="text" 
+                      value={formData.profile.last_name}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        profile: { ...formData.profile, last_name: e.target.value }
+                      })}
+                      className="input w-full" 
+                    />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs text-surface-500 mb-1.5">Email</label>
-                    <input type="email" defaultValue="admin@neuralwatch.io" className="input w-full" />
+                    <input 
+                      type="email" 
+                      value={formData.profile.email}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        profile: { ...formData.profile, email: e.target.value }
+                      })}
+                      className="input w-full" 
+                    />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-xs text-surface-500 mb-1.5">Company</label>
-                    <input type="text" defaultValue="NeuralWatch Inc." className="input w-full" />
+                    <input 
+                      type="text" 
+                      value={formData.profile.company}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        profile: { ...formData.profile, company: e.target.value }
+                      })}
+                      className="input w-full" 
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs text-surface-500 mb-1.5">Tenant ID</label>
+                    <input 
+                      type="text" 
+                      value={formData.tenant_id}
+                      disabled
+                      className="input w-full opacity-50 cursor-not-allowed" 
+                    />
                   </div>
                 </div>
               </div>
@@ -86,24 +180,50 @@ export default function SettingsPage() {
                       <p className="text-sm text-white">Email digest</p>
                       <p className="text-xs text-surface-500">Receive daily summary of your metrics</p>
                     </div>
-                    <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-surface-600 bg-surface-700 text-primary-600 focus:ring-primary-500" />
+                    <input 
+                      type="checkbox" 
+                      checked={formData.preferences.email_digest}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        preferences: { ...formData.preferences, email_digest: e.target.checked }
+                      })}
+                      className="w-4 h-4 rounded border-surface-600 bg-surface-700 text-primary-600 focus:ring-primary-500" 
+                    />
                   </label>
                   <label className="flex items-center justify-between p-3 bg-surface-800/50 rounded-lg cursor-pointer">
                     <div>
                       <p className="text-sm text-white">Weekly reports</p>
                       <p className="text-xs text-surface-500">Receive weekly performance reports</p>
                     </div>
-                    <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-surface-600 bg-surface-700 text-primary-600 focus:ring-primary-500" />
+                    <input 
+                      type="checkbox" 
+                      checked={formData.preferences.weekly_reports}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        preferences: { ...formData.preferences, weekly_reports: e.target.checked }
+                      })}
+                      className="w-4 h-4 rounded border-surface-600 bg-surface-700 text-primary-600 focus:ring-primary-500" 
+                    />
                   </label>
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <button onClick={handleSave} className="btn-primary flex items-center gap-2">
-                  {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                  {saved ? "Saved" : "Save Changes"}
-                </button>
-              </div>
+              <button
+                onClick={handleSave}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+              >
+                {saved ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Changes
+                  </>
+                )}
+              </button>
             </div>
           )}
 

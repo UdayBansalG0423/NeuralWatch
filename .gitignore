@@ -19,3 +19,6 @@ frontend/vite-project/dist/
 
 # Documentation
 docs/
+
+#.vite
+.vite/

@@ -1,53 +1,14 @@
-import { useState } from "react";
-import { Zap, AlertTriangle, Info, X, CheckCircle2, Clock, Bell } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Zap, AlertTriangle, Info, Bell, LoaderCircle, CheckCircle2 } from "lucide-react";
+import { getAlerts } from "../../services/api";
 
-const alerts = [
-  {
-    id: "1",
-    type: "error",
-    title: "High Latency Detected",
-    message: "Gemini Pro latency exceeded 500ms threshold for the past 15 minutes",
-    timestamp: "5 min ago",
-    model: "Gemini Pro",
-    status: "active",
-  },
-  {
-    id: "2",
-    type: "warning",
-    title: "Cost Threshold Approaching",
-    message: "Daily spend is at 85% of your configured budget limit ($100/day)",
-    timestamp: "1 hour ago",
-    model: null,
-    status: "active",
-  },
-  {
-    id: "3",
-    type: "info",
-    title: "New Model Available",
-    message: "GPT-4 Turbo is now available. Consider upgrading from GPT-4.",
-    timestamp: "3 hours ago",
-    model: null,
-    status: "resolved",
-  },
-  {
-    id: "4",
-    type: "error",
-    title: "API Key Expired",
-    message: "Staging API key has expired. Please rotate to continue using it.",
-    timestamp: "1 day ago",
-    model: null,
-    status: "resolved",
-  },
-  {
-    id: "5",
-    type: "warning",
-    title: "High Error Rate",
-    message: "Error rate for Llama-3 exceeded 2% threshold",
-    timestamp: "2 days ago",
-    model: "Llama-3",
-    status: "resolved",
-  },
-];
+interface Alert {
+  id: string;
+  type: "error" | "warning" | "info";
+  title: string;
+  message: string;
+  status: "active" | "resolved";
+}
 
 const typeConfig = {
   error: { icon: AlertTriangle, color: "text-danger-500", bg: "bg-danger-500/10", border: "border-danger-500/20" },
@@ -55,8 +16,18 @@ const typeConfig = {
   info: { icon: Info, color: "text-primary-400", bg: "bg-primary-500/10", border: "border-primary-500/20" },
 };
 
-export default function Alerts() {
+export default function AlertsPage() {
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [filter, setFilter] = useState("all");
+
+  useEffect(() => {
+    getAlerts()
+      .then((res) => setAlerts(res.data))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredAlerts = alerts.filter(alert => {
     if (filter === "all") return true;
@@ -71,8 +42,26 @@ export default function Alerts() {
   const activeCount = alerts.filter(a => a.status === "active").length;
   const errorCount = alerts.filter(a => a.type === "error" && a.status === "active").length;
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="flex items-center gap-3 text-surface-400">
+          <LoaderCircle className="w-5 h-5 animate-spin" />
+          <span>Loading alerts...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="flex items-center gap-3 p-4 bg-danger-500/10 border border-danger-500/20 rounded-lg">
+          <AlertTriangle className="w-5 h-5 text-danger-500" />
+          <span className="text-sm text-danger-500">Failed to load alerts. Make sure backend is running.</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card flex items-center gap-4">
           <div className="w-12 h-12 bg-primary-500/10 rounded-lg flex items-center justify-center">
@@ -85,7 +74,7 @@ export default function Alerts() {
         </div>
         <div className="card flex items-center gap-4">
           <div className="w-12 h-12 bg-warning-500/10 rounded-lg flex items-center justify-center">
-            <Clock className="w-6 h-6 text-warning-500" />
+            <Zap className="w-6 h-6 text-warning-500" />
           </div>
           <div>
             <p className="text-2xl font-semibold text-white">{activeCount}</p>
@@ -106,7 +95,7 @@ export default function Alerts() {
             <CheckCircle2 className="w-6 h-6 text-success-500" />
           </div>
           <div>
-            <p className="text-2xl font-semibold text-white">{alerts.length - activeCount}</p>
+            <p className="text-2xl font-semibold text-white">{alerts.filter(a => a.status === "resolved").length}</p>
             <p className="text-xs text-surface-500">Resolved</p>
           </div>
         </div>
@@ -190,18 +179,7 @@ export default function Alerts() {
                       }`}>
                         {alert.status}
                       </span>
-                      <button className="p-1 text-surface-500 hover:text-white transition-colors">
-                        <X className="w-4 h-4" />
-                      </button>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4 mt-3">
-                    <span className="text-xs text-surface-500">{alert.timestamp}</span>
-                    {alert.model && (
-                      <span className="text-xs text-surface-500">
-                        Model: <span className="text-primary-400">{alert.model}</span>
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
